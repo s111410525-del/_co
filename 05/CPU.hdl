@@ -39,5 +39,56 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    // ---------------- Decoder ----------------
+    Not(in=instruction[15], out=isA);
+    Not(in=isA, out=isC);
+
+    // ---------------- A Register & Mux ----------------
+    // 如果是 A 指令，選擇 instruction；如果是 C 指令，選擇 ALUout
+    Mux16(a=instruction, b=aluOut, sel=instruction[15], out=inA);
+    
+    // loadA: 當為 A 指令 (isA) 或 C 指令要求寫入 A (isC && instruction[5]) 時載入
+    And(a=isC, b=instruction[5], out=isCAndWriteA);
+    Or(a=isA, b=isCAndWriteA, out=loadA);
+    ARegister(in=inA, load=loadA, out=outA, out[0..14]=addressM);
+
+    // ---------------- ALU Y-Input Selection ----------------
+    // 依據 a-bit (instruction[12]) 決定 ALU 的第二個輸入為 A 暫存器或 inM
+    Mux16(a=outA, b=inM, sel=instruction[12], out=inAM);
+
+    // ---------------- D Register ----------------
+    // loadD: 當為 C 指令且 instruction[4] (d2) 為 1 時載入
+    And(a=isC, b=instruction[4], out=loadD);
+    DRegister(in=aluOut, load=loadD, out=outD);
+
+    // ---------------- ALU ----------------
+    ALU(x=outD, y=inAM, 
+        zx=instruction[11], nx=instruction[10], 
+        zy=instruction[9],  ny=instruction[8], 
+        f=instruction[7],   no=instruction[6], 
+        out=aluOut, out=outM, zr=zr, ng=ng);
+
+    // ---------------- writeM Output ----------------
+    // writeM: 當為 C 指令且 instruction[3] (d3) 為 1 時輸出高電位
+    And(a=isC, b=instruction[3], out=writeM);
+
+    // ---------------- PC Control Logic ----------------
+    // 計算正數標記 pos
+    Or(a=zr, b=ng, out=zrOrNg);
+    Not(in=zrOrNg, out=pos);
+
+    // 檢查各跳轉條件 (j1=JLT/ng, j2=JEQ/zr, j3=JGT/pos)
+    And(a=instruction[2], b=ng, out=jlt);
+    And(a=instruction[1], b=zr, out=jeq);
+    And(a=instruction[0], b=pos, out=jgt);
+
+    // 綜合跳轉條件
+    Or(a=jlt, b=jeq, out=jle);
+    Or(a=jle, b=jgt, out=jumpCond);
+
+    // 只有在 C 指令觸發時，跳轉條件才有效
+    And(a=isC, b=jumpCond, out=loadPC);
+
+    // PC 晶片實作 (inc 永遠為 true)
+    PC(in=outA, load=loadPC, inc=true, reset=reset, out[0..14]=pc);
 }

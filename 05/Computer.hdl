@@ -19,5 +19,13 @@ CHIP Computer {
     IN reset;
 
     PARTS:
-    // Put your code here:
+    // 1. 唯讀記憶體：存放程式碼指令
+    ROM32K(address=pc, out=instruction);
+
+    // 2. 中央處理器：執行指令與資料運算
+    CPU(inM=memoryOut, instruction=instruction, reset=reset, 
+        outM=cpuOut, writeM=writeM, addressM=addressM, pc=pc);
+
+    // 3. 資料記憶體：處理 RAM、Screen 和 Keyboard
+    Memory(in=cpuOut, load=writeM, address=addressM, out=memoryOut);
 }

@@ -27,5 +27,17 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 1. 依據高 2 位元 (address[13..14]) 分發 load 訊號
+    DMux4Way(in=load, sel=address[13..14], a=loadram0, b=loadram1, c=loadscreen, d=loadkbd);
+
+    // RAM16K 涵蓋 00 與 01 兩種情況，需將 loadram0 與 loadram1 合併
+    Or(a=loadram0, b=loadram1, out=loadram);
+
+    // 2. 宣告各硬體元件
+    RAM16K(in=in, load=loadram, address=address[0..13], out=ramout);
+    Screen(in=in, load=loadscreen, address=address[0..12], out=screenout);
+    Keyboard(out=kbdout);
+
+    // 3. 依據高 2 位元 (address[13..14]) 選出對應的記憶體/設備輸出
+    Mux4Way16(a=ramout, b=ramout, c=screenout, d=kbdout, sel=address[13..14], out=out);
 }

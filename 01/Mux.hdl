@@ -3,7 +3,7 @@
 // by Nisan and Schocken, MIT Press.
 // File name: projects/01/Mux.hdl
 
-/** 
+/**
  * Multiplexor:
  * out = a if sel == 0
  *       b otherwise
@@ -14,5 +14,15 @@ CHIP Mux {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    // 1. 先用 Nand 把 sel 反相，得到 Not(sel)
+    Nand(a=sel, b=sel, out=notSel);
+
+    // 2. 計算 (a And Not(sel)) 的 NAND 結果
+    Nand(a=a, b=notSel, out=nandA);
+
+    // 3. 計算 (b And sel) 的 NAND 結果
+    Nand(a=b, b=sel, out=nandB);
+
+    // 4. 將以上兩個結果做 NAND，即為最終的 OR 結果
+    Nand(a=nandA, b=nandB, out=out);
 }

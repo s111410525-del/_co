@@ -42,5 +42,28 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-   // Put you code here:
+   // 1. 處理 x
+    Mux16(a=x, b=false, sel=zx, out=x1);
+    Not16(in=x1, out=notx1);
+    Mux16(a=x1, b=notx1, sel=nx, out=x2);
+
+    // 2. 處理 y
+    Mux16(a=y, b=false, sel=zy, out=y1);
+    Not16(in=y1, out=noty1);
+    Mux16(a=y1, b=noty1, sel=ny, out=y2);
+
+    // 3. 核心運算 (f: 0 -> And, 1 -> Add)
+    And16(a=x2, b=y2, out=andXY);
+    Add16(a=x2, b=y2, out=addXY);
+    Mux16(a=andXY, b=addXY, sel=f, out=fOut);
+
+    // 4. 輸出反轉 (no) 與腳位分流
+    Not16(in=fOut, out=notFOut);
+    Mux16(a=fOut, b=notFOut, sel=no, out=out, out[0..7]=outLow, out[8..15]=outHigh, out[15]=ng);
+
+    // 5. 判斷 zr (結果是否全為 0)
+    Or8Way(in=outLow, out=or1);
+    Or8Way(in=outHigh, out=or2);
+    Or(a=or1, b=or2, out=nonzero);
+    Not(in=nonzero, out=zr);
 }

@@ -16,5 +16,19 @@ CHIP PC {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 1. 計算 out[t] + 1
+    Inc16(in=outState, out=incOut);
+
+    // 2. 最底層優先權：如果 inc==1，選擇 incOut，否則維持 outState
+    Mux16(a=outState, b=incOut, sel=inc, out=o1);
+
+    // 3. 中層優先權：如果 load==1，選擇輸入值 in，否則保留 o1
+    Mux16(a=o1, b=in, sel=load, out=o2);
+
+    // 4. 最高優先權：如果 reset==1，選擇 0 (false)，否則保留 o2
+    Mux16(a=o2, b=false, sel=reset, out=nextState);
+
+    // 5. 儲存新狀態至 Register（將 load設為 true 讓它每週期更新選好的 nextState）
+    // 同時將輸出拆分一份給外部 out，一份回傳給內部做自增
+    Register(in=nextState, load=true, out=out, out=outState);
 }
